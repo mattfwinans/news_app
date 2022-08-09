@@ -1,9 +1,13 @@
 import streamlit as st
 import requests
-from datetime import date, timedelta
+#from datetime import date, timedelta, datetime
+import datetime as dt
 import PIL
 from PIL import Image
 import base64
+import psycopg2
+from dotenv import load_dotenv
+import os
 
 
 st.set_page_config(page_title='CSM Search Tool', page_icon=':sunglasses:')
@@ -50,7 +54,35 @@ st.markdown(
 
 st.title('Customer Success News App')
 
+load_dotenv(load_dotenv())
+dbname = os.getenv("POSTGRES_DB")
+user = os.getenv("POSTGRES_USER")
+password = os.getenv("POSTGRES_PASSWORD")
 
+
+#Function to connect to Postgres DB and insert search string
+
+def insert_search(search_data):
+    #data to be insterted
+    data_insert = str(search_data)
+    ts = dt.datetime.now()
+
+    #postgres connection
+    conn = psycopg2.connect(host='postgres',
+                        port='5432',
+                        dbname=dbname,
+                        user=user,
+                        password=password
+                        )
+
+    #building table and posting data to columns    
+    cur = conn.cursor()
+    cur.execute("CREATE TABLE IF NOT EXISTS search_db \
+        (search_history varchar(250) NOT NULL, \
+        search_timestamp timestamp NOT NULL);")
+    cur.execute("INSERT INTO search_db (search_history, search_timestamp) VALUES(%s, %s);", (data_insert, ts,))
+    conn.commit()
+    conn.close()
 
 
 
@@ -76,12 +108,15 @@ with col1:
 
 btn = st.button('Enter')
 
-today = date.today()
-lastweek = today - timedelta(days=search_date)
+today = dt.date.today()
+lastweek = today - dt.timedelta(days=search_date)
 
 
 if btn:
     #url = f"https://newsapi.org/v2/everything?category={categories}&q={search}&from={lastweek}&to={today}&sortBy=relevancy&apiKey=7b3643eac6fa499ea6d0c7f2f7abf9b1"
+    
+    insert_search(search) #post search string to Postgres Database
+
     url = f"https://newsapi.org/v2/everything?q={search}&from={lastweek}&to={today}&sortBy={searchcriteria}&language=en&apiKey=7b3643eac6fa499ea6d0c7f2f7abf9b1"
 
     r = requests.get(url)
@@ -105,3 +140,51 @@ if btn:
 
 
 #newsapi info: https://newsapi.org/docs/endpoints/everything
+
+
+
+
+
+
+#Postgres sample code
+
+
+# load_dotenv(load_dotenv())
+# dbname = os.getenv("POSTGRES_DB")
+# user = os.getenv("POSTGRES_USER")
+# password = os.getenv("POSTGRES_PASSWORD")
+
+
+# def insert_search(search):
+#     conn = psycopg2.connect(host='postgres',
+#                         port='5432',
+#                         dbname=dbname,
+#                         user=user,
+#                         password=password
+#                         )
+#     sql = """CREATE TABLE IF NOT EXISTS search_db (search_history VARCHAR NOT NULL);
+#         INSERT INTO search_db (search_history) VALUES(%s) RETURNING (search);  """
+
+
+#     cur = conn.cursor()
+
+#     cur.execute(sql, (search, ))
+#     conn.commit()
+#     conn.close()
+
+
+
+# cursor = conn.cursor()
+# cursor.execute("INSERT INTO a_table (c1, c2, c3) VALUES(%s, %s, %s)", (v1, v2, v3))
+# conn.commit() # <- We MUST commit to reflect the inserted data
+# cursor.close()
+# conn.close()
+
+# CREATE TABLE IF NOT EXISTS app_user (
+#   username varchar(45) NOT NULL,
+#   password varchar(450) NOT NULL,
+#   enabled integer NOT NULL DEFAULT '1',
+#   PRIMARY KEY (username)
+# )
+
+

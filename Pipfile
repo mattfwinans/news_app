@@ -9,6 +9,8 @@ pandas = "*"
 gnews = "*"
 requests = "*"
 pycountry = "*"
+psycopg2-binary = "*"
+psycopg2 = "*"
 
 [dev-packages]
 
